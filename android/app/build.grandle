@@ -1,0 +1,9 @@
+android {
+    defaultConfig {
+        applicationId "com.tuempresa.birriacr"  // Identificador único de tu app
+        versionCode 1                           // Incrementa esto en cada actualización
+        versionName "1.0"                       // Versión visible para los usuarios
+        // ...
+    }
+    // ...
+}

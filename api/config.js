@@ -1,6 +1,6 @@
 // api/config.js
 // Reemplaza esta URL con la dirección de tu API REST
-const API_URL = 'http://ec2-3-128-113-3.us-east-2.compute.amazonaws.com:3000/api';
+const API_URL = 'https://bcr.dyndns.org:3443/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const getApiUrl = () => API_URL;

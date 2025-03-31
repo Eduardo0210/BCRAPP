@@ -1,5 +1,7 @@
 // screens/ResumenTicketScreen.js
 import React from 'react';
+import TcpSocket from 'react-native-tcp-socket';
+import { Alert } from 'react-native';
 import { 
   View, 
   Text, 
@@ -17,39 +19,158 @@ const ResumenTicketScreen = ({ route, navigation }) => {
 
   // Función para imprimir ticket (esto es un placeholder, la implementación real
   // depende de la impresora que uses)
+  // const imprimirTicket = async () => {
+  //   const html = `
+  //     <html>
+  //       <body>
+  //         <h2>BIRRIA CR</h2>
+  //         <p><strong>Fecha:</strong> ${new Date().toLocaleString()}</p>
+  //         <p><strong>Mesa:</strong> ${resumen.numeroMesa}</p>
+  //         <p><strong>Método de Pago:</strong> ${metodoPago}</p>
+  //         <hr />
+  //         <p><strong>Detalle de consumo:</strong></p>
+  //         ${resumen.items.map(item => `
+  //           <p>${item.cantidad}x ${item.nombre} - $${item.subtotal.toFixed(2)}</p>
+  //         `).join('')}
+  //         <hr />
+  //         <p><strong>Total:</strong> $${resumen.total.toFixed(2)}</p>
+  //         <p>¡Gracias por su visita!</p>
+  //       </body>
+  //     </html>
+  //   `;
+  
+  //   const { uri } = await Print.printToFileAsync({ html });
+  
+  //   if (await Sharing.isAvailableAsync()) {
+  //     await Sharing.shareAsync(uri);
+  //   } else {
+  //     Alert.alert("No se puede compartir el archivo en este dispositivo");
+  //   }
+  // };
   const imprimirTicket = async () => {
-    const html = `
-      <html>
-        <body>
-          <h2>BIRRIA CR</h2>
-          <p><strong>Fecha:</strong> ${new Date().toLocaleString()}</p>
-          <p><strong>Mesa:</strong> ${resumen.numeroMesa}</p>
-          <p><strong>Método de Pago:</strong> ${metodoPago}</p>
-          <hr />
-          <p><strong>Detalle de consumo:</strong></p>
-          ${resumen.items.map(item => `
-            <p>${item.cantidad}x ${item.nombre} - $${item.subtotal.toFixed(2)}</p>
-          `).join('')}
-          <hr />
-          <p><strong>Total:</strong> $${resumen.total.toFixed(2)}</p>
-          <p>¡Gracias por su visita!</p>
-        </body>
-      </html>
-    `;
+    const textoTicket = `
+  BIRRIA LA CRUDA REALIDAD
+  ------------------------------
+  Fecha: ${new Date().toLocaleString()}
+  Mesa: ${resumen.numeroMesa}
+  Método de Pago: ${metodoPago}
+  ------------------------------
+  Detalle de consumo:
+  ${resumen.items.map(item =>
+    `${item.cantidad}x ${item.nombre} - $${item.subtotal.toFixed(2)}`
+  ).join('\n')}
+  ------------------------------
+  TOTAL: $${resumen.total.toFixed(2)}
+  ------------------------------
+  ¡Gracias por su visita!\n\n\n\n\n\n`;  // Añado más saltos de línea para asegurar avance de papel
   
-    const { uri } = await Print.printToFileAsync({ html });
+    // Función para crear una nueva conexión cada vez
+    const conectarEImprimir = () => {
+      return new Promise((resolve, reject) => {
+        // Usar un temporizador de seguridad global
+        const timeoutId = setTimeout(() => {
+          console.log("Tiempo de seguridad agotado");
+          if (client) {
+            client.destroy();
+          }
+          reject(new Error("Operación cancelada por tiempo de seguridad"));
+        }, 5000); // 5 segundos de límite total
+        
+        let client = null;
+        
+        try {
+          client = TcpSocket.createConnection(
+            { port: 9100, host: '192.168.68.114', timeout: 2000 },
+            () => {
+              console.log("Conectado, enviando ticket...");
+              
+              // Forzar vaciado del buffer después de escribir
+              const success = client.write(textoTicket, 'utf8', (err) => {
+                if (err) {
+                  console.error("Error al escribir:", err);
+                  clearTimeout(timeoutId);
+                  client.destroy();
+                  reject(err);
+                  return;
+                }
+                
+                console.log("Datos enviados, cerrando conexión...");
+                
+                // Forzar cierre inmediato
+                try {
+                  client.end();
+                  
+                  // Forzar desconexión después de un breve tiempo si end() no cierra la conexión
+                  setTimeout(() => {
+                    if (client) {
+                      console.log("Forzando cierre de conexión");
+                      client.destroy();
+                    }
+                  }, 500);
+                } catch (e) {
+                  console.error("Error al cerrar:", e);
+                  client.destroy();
+                }
+              });
+              
+              if (!success) {
+                console.warn("Buffer lleno, esperando a que se vacíe");
+              }
+            }
+          );
+          
+          client.on('drain', () => {
+            console.log("Buffer vaciado");
+          });
   
-    if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(uri);
-    } else {
-      Alert.alert("No se puede compartir el archivo en este dispositivo");
+          client.on('data', (data) => {
+            console.log('Respuesta de impresora:', data.toString());
+          });
+  
+          client.on('close', (hadError) => {
+            console.log("Conexión cerrada" + (hadError ? " con error" : " correctamente"));
+            clearTimeout(timeoutId);
+            resolve();
+          });
+  
+          client.on('error', (error) => {
+            console.error("Error en conexión:", error);
+            clearTimeout(timeoutId);
+            if (client) client.destroy();
+            reject(error);
+          });
+  
+          client.on('timeout', () => {
+            console.warn("Conexión: tiempo de espera agotado");
+            clearTimeout(timeoutId);
+            if (client) client.destroy();
+            reject(new Error("Timeout en conexión"));
+          });
+        } catch (err) {
+          console.error("Excepción al crear conexión:", err);
+          clearTimeout(timeoutId);
+          if (client) client.destroy();
+          reject(err);
+        }
+      });
+    };
+  
+    try {
+      await conectarEImprimir();
+      Alert.alert("Éxito", "Ticket enviado a la impresora");
+    } catch (err) {
+      console.error("Error general:", err);
+      Alert.alert("Error", "No se pudo imprimir el ticket");
     }
   };
+  
+  
+  
 
   return (
     <View style={styles.container}>
       <View style={styles.ticketContainer}>
-        <Text style={styles.headerTitle}>BIRRIA CR</Text>
+        <Text style={styles.headerTitle}>BIRRIA CR TEST 1.3</Text>
         <Text style={styles.headerSubtitle}>Ticket de Venta</Text>
         
         <View style={styles.infoRow}>
@@ -79,25 +200,16 @@ const ResumenTicketScreen = ({ route, navigation }) => {
             <Text style={styles.itemTotal}>${item.subtotal.toFixed(2)}</Text>
           </View>
         ))}
-        
+
         <View style={styles.divider} />
-        
+
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Subtotal:</Text>
-          <Text style={styles.totalValue}>${resumen.subtotal.toFixed(2)}</Text>
-        </View>
-        
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>IVA:</Text>
-          <Text style={styles.totalValue}>${resumen.iva.toFixed(2)}</Text>
-        </View>
-        
-        <View style={styles.totalRow}>
-          <Text style={[styles.totalLabel, styles.grandTotalLabel]}>TOTAL:</Text>
+          <Text style={[styles.totalLabel, styles.grandTotalLabel]}>Total:</Text>
           <Text style={[styles.totalValue, styles.grandTotalValue]}>
             ${resumen.total.toFixed(2)}
           </Text>
         </View>
+
         
         <View style={styles.divider} />
         

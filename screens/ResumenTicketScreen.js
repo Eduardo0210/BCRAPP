@@ -17,52 +17,39 @@ import * as Sharing from 'expo-sharing';
 const ResumenTicketScreen = ({ route, navigation }) => {
   const { resumen, mesaId, metodoPago } = route.params;
 
-  // Función para imprimir ticket (esto es un placeholder, la implementación real
-  // depende de la impresora que uses)
-  // const imprimirTicket = async () => {
-  //   const html = `
-  //     <html>
-  //       <body>
-  //         <h2>BIRRIA CR</h2>
-  //         <p><strong>Fecha:</strong> ${new Date().toLocaleString()}</p>
-  //         <p><strong>Mesa:</strong> ${resumen.numeroMesa}</p>
-  //         <p><strong>Método de Pago:</strong> ${metodoPago}</p>
-  //         <hr />
-  //         <p><strong>Detalle de consumo:</strong></p>
-  //         ${resumen.items.map(item => `
-  //           <p>${item.cantidad}x ${item.nombre} - $${item.subtotal.toFixed(2)}</p>
-  //         `).join('')}
-  //         <hr />
-  //         <p><strong>Total:</strong> $${resumen.total.toFixed(2)}</p>
-  //         <p>¡Gracias por su visita!</p>
-  //       </body>
-  //     </html>
-  //   `;
-  
-  //   const { uri } = await Print.printToFileAsync({ html });
-  
-  //   if (await Sharing.isAvailableAsync()) {
-  //     await Sharing.shareAsync(uri);
-  //   } else {
-  //     Alert.alert("No se puede compartir el archivo en este dispositivo");
-  //   }
-  // };
+ 
   const imprimirTicket = async () => {
     const textoTicket = `
-  BIRRIA LA CRUDA REALIDAD
-  ------------------------------
-  Fecha: ${new Date().toLocaleString()}
-  Mesa: ${resumen.numeroMesa}
-  Método de Pago: ${metodoPago}
-  ------------------------------
-  Detalle de consumo:
-  ${resumen.items.map(item =>
-    `${item.cantidad}x ${item.nombre} - $${item.subtotal.toFixed(2)}`
-  ).join('\n')}
-  ------------------------------
-  TOTAL: $${resumen.total.toFixed(2)}
-  ------------------------------
-  ¡Gracias por su visita!\n\n\n\n\n\n`;  // Añado más saltos de línea para asegurar avance de papel
+    LA BIRRIA LA CRUDA REALIDAD
+    N.I.F.: B1234567
+    Manzana 019, Adolfo Lopez Mateos
+    Cuautitlán Izcalli, Méx.
+    CP: 54769
+    TELEFONO: 5590489245
+    
+    PRE-TICKET
+    ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}
+    LE ATENDIÓ: Ventas
+    MESASMESA ${resumen.numeroMesa}
+    CONTADO
+    
+    UNID. ARTÍCULO                    PRECIO IMPORTE
+    ${resumen.items.map(item => {
+      const nombre = item.nombre.length > 20 ? item.nombre.slice(0, 20) : item.nombre;
+      const cantidad = item.cantidad.toString().padStart(2, ' ');
+      const precio = (item.subtotal / item.cantidad).toFixed(2).padStart(6, ' ');
+      const importe = item.subtotal.toFixed(2).padStart(7, ' ');
+      return `${cantidad}  ${nombre.padEnd(24)} ${precio} ${importe}`;
+    }).join('\n')}
+    
+    BASE      TIPO      CUOTA      TOTAL
+    ${resumen.subtotal.toFixed(2).padStart(7, ' ')}     10       ${(resumen.total - resumen.subtotal).toFixed(2).padStart(4, ' ')}      ${resumen.total.toFixed(2)}
+    
+    TOTAL: ${resumen.total.toFixed(2)}
+    
+    *** GRACIAS POR SU VISITA ***
+    DOCUMENTO SIN VALIDEZ A EFECTOS FISCALES
+    \n\n\n\n\n\n`;
   
     // Función para crear una nueva conexión cada vez
     const conectarEImprimir = () => {
@@ -80,7 +67,7 @@ const ResumenTicketScreen = ({ route, navigation }) => {
         
         try {
           client = TcpSocket.createConnection(
-            { port: 9100, host: '192.168.68.114', timeout: 2000 },
+            { port: 9100, host: '192.168.100.114', timeout: 2000 },
             () => {
               console.log("Conectado, enviando ticket...");
               

@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 const Header = ({ title, showLogout = false, onLogout }) => {
   return (
     <View style={styles.header}>
-      <Text style={styles.headerText}>{title}</Text>
+      <Text style={styles.headerText}>{title} V1.1</Text>
       
       {showLogout && (
         <TouchableOpacity 

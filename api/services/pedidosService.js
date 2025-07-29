@@ -124,6 +124,44 @@ export const actualizarEstadoPedido = async (pedidoId, estado, notas) => {
   }
 };
 
+export const actualizarPedido = async (id, data) => {
+  const token = await AsyncStorage.getItem('token');
+  if (!token) throw new Error('No se proporcionó token de autenticación');
+
+  const response = await fetch(`${API_URL}/pedidos/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error?.message || `Error HTTP: ${response.status}`);
+  }
+
+  return await response.json();
+};
+
+
+// api/services/pedidosService.js
+export const reemplazarItemsPedido = async (pedidoId) => {
+  const response = await fetch(`${API_URL}/pedidos/${pedidoId}/items/reemplazar`, {
+    method: 'PUT',
+    headers: await getHeaders(true),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error?.message || 'Error al reemplazar items del pedido');
+  }
+
+  return await response.json();
+};
+
+
 // Procesar pago de un pedido
 export const procesarPago = async (pedidoId, pagoData) => {
   try {

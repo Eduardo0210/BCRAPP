@@ -4,17 +4,24 @@ import { getApiUrl, getHeaders } from '../config';
 const API_URL = getApiUrl();
 
 
-export const cerrarCuentaMesa = async (mesaId, metodoPago) => {
+export const cerrarCuentaMesa = async (mesaId, metodoPago = null, pagos = []) => {
   try {
+
+    console.log(pagos);
     const url = `${API_URL}/mesas/${mesaId}/cerrar-cuenta`;
     console.log('URL de petición:', url);
-    
+
     const headers = await getHeaders(true);
     console.log('Headers:', JSON.stringify(headers));
-    
-    const body = JSON.stringify({ metodoPago });
+
+    // Armar body con método tradicional o pagos múltiples
+    const bodyData = pagos.length > 0
+      ? { pagos }
+      : { metodoPago };
+
+    const body = JSON.stringify(bodyData);
     console.log('Body:', body);
-    
+
     const response = await fetch(url, {
       method: 'POST',
       headers: headers,
@@ -22,8 +29,7 @@ export const cerrarCuentaMesa = async (mesaId, metodoPago) => {
     });
 
     console.log('Respuesta status:', response.status);
-    
-    // Si no es JSON, intentar leer el texto para ver el error
+
     if (!response.ok) {
       const text = await response.text();
       console.error('Respuesta de error (texto):', text);
@@ -37,6 +43,7 @@ export const cerrarCuentaMesa = async (mesaId, metodoPago) => {
     throw error;
   }
 };
+
 // Obtener todas las mesas
 export const getMesas = async () => {
   try {
@@ -75,6 +82,36 @@ export const getMesaPorId = async (mesaId) => {
     return data;
   } catch (error) {
     console.error(`Error al obtener la mesa ${mesaId}:`, error);
+    throw error;
+  }
+};
+
+// Obtener pedidos para llevar activos
+export const obtenerPedidosParaLlevar = async () => {
+  try {
+    const url = `${API_URL}/mesas/pedidos-para-llevar`;
+    console.log('URL de petición:', url);
+
+    const headers = await getHeaders(true);
+    console.log('Headers:', JSON.stringify(headers));
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: headers
+    });
+
+    console.log('Respuesta status:', response.status);
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error('Respuesta de error (texto):', text);
+      throw new Error(`Error HTTP: ${response.status}. Respuesta: ${text.slice(0, 100)}...`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error al obtener pedidos para llevar:', error);
     throw error;
   }
 };

@@ -1,11 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
-const PedidoItem = ({ item, cantidad, onDelete }) => {
+const PedidoItem = ({ item, cantidad, notas, onDelete, onEdit }) => {
   return (
-    <View style={styles.item}>
+    <TouchableOpacity style={styles.item} onPress={onEdit}>
       <View style={styles.itemInfo}>
         <Text style={styles.itemNombre}>{item.nombre}</Text>
+        {notas && <Text style={styles.tipoCarne}>Carne: {notas}</Text>}
         <Text style={styles.itemPrecio}>${(item.precio * cantidad).toFixed(2)}</Text>
       </View>
       <View style={styles.cantidadContainer}>
@@ -14,7 +15,7 @@ const PedidoItem = ({ item, cantidad, onDelete }) => {
       <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
         <Text style={styles.deleteButtonText}>X</Text>
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -28,6 +29,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  tipoCarne: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
+  
   itemInfo: {
     flex: 1,
   },
